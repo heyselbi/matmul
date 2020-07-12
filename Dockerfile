@@ -1,21 +1,24 @@
 
-# mlcc -i Centos8,CUDA10.2,Numpy,TensorFlow,Keras
+# mlcc -i RHEL7.8,Numpy,TensorFlow,Keras
 # mlcc version: 20181224a: Nov 12 2019
 
-# Install up-to-date Centos 8
+# Install UBI 7.8 backed by lower priority RHEL 7 repos
 
-FROM centos:8
+FROM registry.access.redhat.com/ubi7:7.8
+
+WORKDIR /matmul
 
 RUN set -vx \
 \
-&& yum -y -v install yum-utils \
 && yum-config-manager --enable \
-    BaseOS \
-    AppStream \
-    extras \
-    PowerTools \
+    rhel-7-server-rpms \
+    rhel-7-server-extras-rpms \
+    rhel-7-server-optional-rpms \
 \
-&& yum -y -v install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm" \
+&& sed -i '/enabled = 1/ a priority =  1' /etc/yum.repos.d/ubi.repo \
+&& sed -i '/enabled = 1/ a priority = 99' /etc/yum.repos.d/redhat.repo \
+\
+&& yum -y -v install "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm" \
 \
 && yum -y update \
 && yum clean all
@@ -206,167 +209,6 @@ RUN set -vx \
 
 RUN date; df -h
 
-# Install CUDA 10.2 
-
-RUN set -vx \
-\
-&& echo -e '\
-exec > /etc/yum.repos.d/cuda.repo \n\
-echo [cuda] \n\
-echo name=cuda \n\
-if [ "`/bin/arch`" = "aarch64" ]; then \n\
-echo baseurl="file:///var/cuda-repo" \n\
-elif [ -f /etc/fedora-release ]; then \n\
-echo baseurl="http://developer.download.nvidia.com/compute/cuda/repos/fedora29/`/bin/arch`" \n\
-else \n\
-OS_MAJ_VER=`(. /etc/os-release; echo ${VERSION_ID:0:1})` \n\
-echo baseurl="http://developer.download.nvidia.com/compute/cuda/repos/rhel${OS_MAJ_VER}/`/bin/arch`" \n\
-fi \n\
-echo enabled=1 \n\
-echo gpgcheck=0 \n' \
->> /tmp/Make_CUDA_Repo.sh \
-&& sh /tmp/Make_CUDA_Repo.sh \
-\
-&& /tmp/yum_install.sh cuda-10-2
-
-ENV \
-CUDA_VERSION="10.2" \
-CUDA_HOME="/usr/local/cuda" \
-CUDA_PATH="/usr/local/cuda" \
-PATH="/usr/local/cuda/bin:/usr/local/bin:/usr/bin:${PATH:+:${PATH}}" \
-LD_LIBRARY_PATH="/usr/local/cuda/lib64:${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-
-
-# Install old GCC v8.3 if necessary
-
-RUN set -vx \
-\
-&& GCC_VERSION_OUTPUT=`gcc --version` \
-&& if [ "${GCC_VERSION_OUTPUT:10:1}" -gt 8 ]; then \
-\
-    mkdir -p /tmp/gcc_tmp_build_dir; \
-    cd /tmp/gcc_tmp_build_dir; \
-\
-    /tmp/cached_wget.sh -q "https://ftp.gnu.org/gnu/gcc/gcc-8.3.0/gcc-8.3.0.tar.xz"; \
-    /tmp/cached_wget.sh -q "https://gcc.gnu.org/pub/gcc/infrastructure/gmp-6.1.0.tar.bz2"; \
-    /tmp/cached_wget.sh -q "https://gcc.gnu.org/pub/gcc/infrastructure/mpfr-3.1.4.tar.bz2"; \
-    /tmp/cached_wget.sh -q "https://gcc.gnu.org/pub/gcc/infrastructure/mpc-1.0.3.tar.gz"; \
-    /tmp/cached_wget.sh -q "https://gcc.gnu.org/pub/gcc/infrastructure/isl-0.18.tar.bz2"; \
-\
-    tar -xf gcc-8.3.0.tar.xz; \
-    tar -xf gmp-6.1.0.tar.bz2; \
-    tar -xf mpfr-3.1.4.tar.bz2; \
-    tar -xf mpc-1.0.3.tar.gz; \
-    tar -xf isl-0.18.tar.bz2; \
-\
-    ln -s /tmp/gcc_tmp_build_dir/gmp-6.1.0 gcc-8.3.0/gmp; \
-    ln -s /tmp/gcc_tmp_build_dir/mpfr-3.1.4 gcc-8.3.0/mpfr; \
-    ln -s /tmp/gcc_tmp_build_dir/mpc-1.0.3 gcc-8.3.0/mpc; \
-    ln -s /tmp/gcc_tmp_build_dir/isl-0.18 gcc-8.3.0/isl; \
-\
-    gcc-8.3.0/configure --disable-multilib --enable-languages=c,c++,fortran --prefix=/usr/local; \
-    make -j`getconf _NPROCESSORS_ONLN`; \
-    make install-strip; \
-\
-    cd /tmp; \
-    /bin/rm -rf /tmp/gcc_tmp_build_dir; \
-\
-    ln -s /usr/local/bin/gcc /usr/local/cuda/bin/gcc; \
-    ln -s /usr/local/bin/g++ /usr/local/cuda/bin/g++; \
-    export CC="/usr/local/bin/gcc"; \
-    export CXX="/usr/local/bin/g++"; \
-\
-    echo -e '\
-    \n\
-    export CC="/usr/local/bin/gcc" \n\
-    export CXX="/usr/local/bin/g++" \n\
-    \n' \
-    >> ~/.bashrc; \
-\
-fi
-
-
-
-# Install NVIDIA NCCL
-# See: https://developer.nvidia.com/nccl
-
-RUN set -vx \
-\
-&& cd /tmp \
-&& git clone --depth 1 "https://github.com/NVIDIA/nccl.git" \
-&& cd /tmp/nccl \
-\
-&& if grep install Makefile ; then \
-    echo "Makefile already has install target"; \
-else \
-    echo "install: src.install" >> Makefile; \
-fi \
-\
-&& make -j`getconf _NPROCESSORS_ONLN` src.build \
-&& make -j`getconf _NPROCESSORS_ONLN` install \
-\
-&& cd /tmp \
-&& /bin/rm -rf /tmp/nccl* \
-\
-&& ldconfig 
-
-
-
-# Install NVIDIA cuDNN
-# See: https://developer.nvidia.com/cudnn
-
-RUN set -vx \
-\
-&& cd /tmp \
-\
-&& echo -e '\
-set -vx \n\
-if [ -d "/usr/local/cuda-10.2" ]; then \n\
-    CUDNN_VER="v7.6.5/cudnn-10.2-linux-x64-v7.6.5.32.tgz" \n\
-elif [ -d "/usr/local/cuda-10.1" ]; then \n\
-    CUDNN_VER="v7.5.0/cudnn-10.1-linux-x64-v7.5.0.56.tgz" \n\
-    CUDNN_VER="v7.6.5/cudnn-10.1-linux-x64-v7.6.5.32.tgz" \n\
-elif [ -d "/usr/local/cuda-10.0" ]; then \n\
-    CUDNN_VER="v7.5.0/cudnn-10.0-linux-x64-v7.5.0.56.tgz" \n\
-    CUDNN_VER="v7.6.5/cudnn-10.0-linux-x64-v7.6.5.32.tgz" \n\
-elif [ -d "/usr/local/cuda-9.2" ]; then \n\
-    CUDNN_VER="v7.5.0/cudnn-9.2-linux-x64-v7.5.0.56.tgz" \n\
-    CUDNN_VER="v7.6.5/cudnn-9.2-linux-x64-v7.6.5.32.tgz" \n\
-elif [ -d "/usr/local/cuda-9.1" ]; then \n\
-    CUDNN_VER="v7.1.3/cudnn-9.1-linux-x64-v7.1.tgz" \n\
-elif [ -d "/usr/local/cuda-9.0" ]; then \n\
-    CUDNN_VER="v7.5.0/cudnn-9.0-linux-x64-v7.5.0.56.tgz" \n\
-    CUDNN_VER="v7.6.5/cudnn-9.0-linux-x64-v7.6.5.32.tgz" \n\
-elif [ -d "/usr/local/cuda-8.0" ]; then \n\
-    CUDNN_VER="v7.1.3/cudnn-8.0-linux-x64-v7.1.tgz" \n\
-else \n\
-    CUDNN_VER="idk_cudnn_version" \n\
-fi \n\
-echo "http://developer.download.nvidia.com/compute/redist/cudnn/$CUDNN_VER" \n' \
-> /tmp/select_cudnn.sh \
-\
-&& if [ "`/bin/arch`" = "x86_64" ]; then \
-\
-/tmp/cached_wget.sh `sh /tmp/select_cudnn.sh` \
-\
-&& tar -xvf cudnn*.tgz \
-&& cd /tmp/cuda \
-\
-&& mv include/cudnn.h /usr/local/cuda/include \
-&& mv lib64/lib* /usr/local/cuda/lib64 \
-\
-&& cd /tmp \
-&& /bin/rm -rf /tmp/cud* \
-\
-&& ldconfig; \
-\
-fi
-
-
-
-
-RUN date; df -h
-
 # Install Numpy
 
 RUN set -vx \
@@ -420,6 +262,7 @@ fi \
 \
 && /usr/local/bin/pip3 -v install keras
 
+ADD . /matmul
 
 RUN date; df -h
 

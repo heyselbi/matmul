@@ -4,7 +4,7 @@ kind: PipelineRun
 metadata:
   name: matmul-pr
 spec:
-  serviceAccountName: pipeline
+  serviceAccountName: matmul
   pipelineRef:
     name: matmul-pl
   timeout: "0"

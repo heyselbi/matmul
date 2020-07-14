@@ -1,6 +1,6 @@
 # Tekton Pipeline for a Sample Cuda Code on Openshift
 
-A tekton pipeline that will build the image from Dockerfile, push the image to quay registry, pull that image and run the cuda code. Cuda code that is used here is the matrix multiplier one that was written by [thoth](https://github.com/thoth-station/performance.git) team. Part of the pipeline yamls were adopted from [AICoE](https://github.com/AICoE/mlperf-tekton/tree/master/object_detection).
+A tekton pipeline that will build the image from Dockerfile, push the image to quay registry, pull that image and run the cuda code on CPU. GPU version is currently under way. Cuda code that is used here is the matrix multiplier one that was written by [thoth](https://github.com/thoth-station/performance.git) team. Part of the pipeline yamls were adopted from [AICoE](https://github.com/AICoE/mlperf-tekton/tree/master/object_detection).
 
 Pipeline consists of two tasks: `mm-buildah` and `mm-run`. `mm-buildah` consists of two steps: `build` and `push`, while `mm-run` consists of only one step: `run`.
 

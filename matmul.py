@@ -51,14 +51,14 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 if _ARGS_DEVICE == 'cpu':
     os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
-
-def _get_aicoe_tensorflow_build_info():
+# commenting this out since I will be using standard tensorflow build
+#def _get_aicoe_tensorflow_build_info():
     """Try to obtain information of AICoE TensorFlow builds.
 
     Do whatever is needed in this function, if there is an error, the reported build information is
     set to None (e.g. AICoE TensorFlow is not installed and such).
     """
-    try:
+    """try:
         path = os.path.dirname(os.path.dirname(tf.__file__))
         build_info_path = os.path.join(path, 'tensorflow-' + tf.__version__ + '.dist-info', 'build_info.json')
         with open(build_info_path, 'r') as build_info_file:
@@ -67,7 +67,7 @@ def _get_aicoe_tensorflow_build_info():
     except Exception:
         _LOGGER.exception("Failed to obtain AICoE specific build information for TensorFlow")
 
-    return None
+    return None"""
 
 
 def bench_v1(n: int):

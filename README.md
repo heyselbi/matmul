@@ -17,9 +17,9 @@ Free 1-hour access is also available through [learn.openshift.com](learn.openshi
 
 **Quay repository account and robot access**
 
-Go to [quay.io](quay.io) and create an account. Once account is setup, on the top right click "Create New Repository" and create a "Container Image Repository" with a name of "matmul", set it to public, choose empty repository and click "Create Public Repository".
+Create an account in [quay.io](quay.io). Once account is setup, on the top right click "Create New Repository" and create a "Container Image Repository" with a name of "matmul", set it to public, choose empty repository and click "Create Public Repository".
 
-Now let's set up the robot that will allow access to your repositories. On top right, click on your username, then "Account Settings". On the left, click on the image of a robot, then on the right "Create Robot Account". Then, fill in "build" for a name and provide description if desired and click "Create Robot Account". Choose all repositories you would like to access. In our case, it is only "matmul", whose permissions need to be set "Write" and click "Add permissions". Now you have a robot that will facilitate push, pull access to your repository.
+Now let's set up the robot that will allow access to repositories. On top right, click on username, then "Account Settings". On the left, click on the image of a robot, then on the right "Create Robot Account". Then, fill in "build" for a name and provide description if desired and click "Create Robot Account". Choose all repositories that need to be accessed. In this case, it is only "matmul", whose permissions need to be set "Write" and click "Add permissions". This robot now will facilitate push, pull access to your repository.
 
 ## Setup
 
@@ -32,7 +32,7 @@ It will ask for your password. Create a new project called "matmul":
 ```bash
 oc new-project matmul
 ```
-Fork this repository on your Github account and then clone it into your local machine where pipelines would be running. Remember to change *username* to yours:
+Fork this repository on own Github account and then clone it into local machine where pipelines would be running. Please remember to change *username* to own:
 
 ```git
 git clone https://github.com/username/matmul.git
@@ -48,7 +48,7 @@ oc adm policy add-scc-to-user anyuid -z matmul
 ```
 `-z` refers to service account specifically. 
 
-Now let's set up the Quay registry access for the service account. In your quay registry, click on your username --> Account Settings --> robot icon on the left. Click on the robot account name that was set up earlier and go to "Kubernetes Secret". Secret could either be downloaded to local machine that will be running the pipelines or viewed and copy-pasted in the machine via `vi secret-file.yml`.
+Now let's set up the Quay registry access for the service account. In quay registry, click on your username --> Account Settings --> robot icon on the left. Click on the robot account name that was set up earlier and go to "Kubernetes Secret". Secret could either be downloaded to local machine that will be running the pipelines or viewed and copy-pasted in the machine via `vi secret-file.yml`.
 
 Before applying the secret, inside the yaml file change the `name:` of the secret to "matmul-secret". Now let's apply the secret (if downloaded file, use the filename):
 ```bash
@@ -77,12 +77,12 @@ secrets:
 ```
 and exit (ie. `ESC` and `:wq`)
 
-Now you are good to go!
+Now it is good to go!
 
 
 ## Run the pipeline
 
-Go to the folder that was cloned where "full-pipeline.yml" file is. First, let's upload all pipeline resources, tasks, pipeline and request for persistent volume claim.
+Go to the folder that was cloned where "full-pipeline.yml" file is. First, let's upload all pipeline resources, tasks, pipeline and request for persistent volume claim:
 ```bash
 oc apply -f full-pipeline.yml
 ```
@@ -102,7 +102,7 @@ And now let's start the pipeline:
 oc apply -f pipeline-run.yml
 ```
 
-Now your pipeline is running! It can be confirmed that it is running with:
+Now the pipeline is running. It can be confirmed with:
 ```bash
 oc get pr
 ```
@@ -114,7 +114,7 @@ As mentioned earlier, pipeline consists of two tasks. First task has two steps: 
 
 To see progress, we can check the logs of those specific steps (each task is a separate pod and each step is a separate container).
 
-First, we need to check the pod name:
+First, check the pod name:
 ```bash
 oc get pods
 ```
@@ -141,8 +141,10 @@ MATRIX size set to 512
 # Version: 2.2.0, path: ['/usr/local/lib/python3.8/site-packages/tensorflow', '/usr/local/lib/python3.8/site-packages/tensorflow_estimator/python/estimator/api/_v2', '/usr/local/lib/python3.8/site-packages/tensorboard/summary/_tf', '/usr/local/lib/python3.8/site-packages/tensorflow', 'usr/local/lib/python3.8/site-packages/tensorflow/_api/v2']
 512 x 512 matmul took:          3.5977 ms,      74.54 GFLOPS
 ```
+The pipeline-run has been completed! All tasks, pipelinerources, pipeline, pipeline-run and pvc can then be deleted if not needed anymore. ie:
+```bash
+oc delete tasks --all -n matmul
+```
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-Please make sure to update tests as appropriate.
+Pull requests are welcome.

@@ -1,5 +1,5 @@
 
-# mlcc -i RHEL7.8,Numpy,TensorFlow,Keras
+# mlcc -i RHEL7.8,Numpy,TensorFlow
 # mlcc version: 20181224a: Nov 12 2019
 
 # Install UBI 7.8 backed by lower priority RHEL 7 repos
@@ -234,33 +234,6 @@ fi \
 && /usr/local/bin/python3 -c 'import tensorflow as tf; print(tf.__version__)'
 
 EXPOSE 6006
-
-
-RUN date; df -h
-
-# Install Keras
-
-RUN set -vx \
-\
-&& mkdir -p ~/.keras \
-&& echo -e '\
-{ \n\
-    "image_data_format": "channels_last", \n\
-    "epsilon": 1e-07, \n\
-    "floatx": "float32", \n\
-    "backend": "KERAS_BACKEND" \n\
-} \n' \
-> ~/.keras/keras.json \
-\
-&& if [ -f ~/.theanorc ]; then \
-    sed -i 's/KERAS_BACKEND/theano/g' ~/.keras/keras.json; \
-elif [ -f /tmp/select_cntk.sh ]; then \
-    sed -i 's/KERAS_BACKEND/cntk/g' ~/.keras/keras.json; \
-else \
-    sed -i 's/KERAS_BACKEND/tensorflow/g' ~/.keras/keras.json; \
-fi \
-\
-&& /usr/local/bin/pip3 -v install keras
 
 ADD . /matmul
 
